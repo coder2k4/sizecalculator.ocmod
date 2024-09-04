@@ -1,0 +1,191 @@
+<div class="sizecalculator-module">
+    <h3>
+        <strong>{{ title }}</strong>
+    </h3>
+    <p class="text-center">
+        <small class="text-muted">{{ subtitle }}</small>
+    </p>
+
+    <div class="calculator-form{{ module }}">
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="product-type">Выберите вид продукции</label>
+                    <select id="product-type" name="product-type" class="form-control">
+                        {% for product in products %}
+                            <option value="{{ product.product_id }}" data-price="{{ product.price }}">{{ product.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="paper-type">Выберите тип бумаги</label>
+                    <select id="paper-type" name="paper-type" class="form-control">
+                        {% for paper in papers %}
+                            <option value="{{ paper.product_id }}" data-price="{{ paper.price }}">{{ paper.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="cardboard-grade">Марка картона</label>
+                    <select id="cardboard-grade" name="cardboard-grade" class="form-control">
+                        {% for cardboard in cardboards %}
+                            <option value="{{ cardboard.product_id }}" data-price="{{ cardboard.price }}">{{ cardboard.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="height">Высота (мм)</label>
+                    <input type="number" id="height" name="height" class="form-control" onfocus="showDimensionImage(1)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="length">Длина (мм)</label>
+                    <input type="number" id="length" name="length" class="form-control" onfocus="showDimensionImage(2)" />
+                </div>
+
+                <div class="form-group">
+                    <label for="width">Ширина (мм)</label>
+                    <input type="number" id="width" name="width" class="form-control" onfocus="showDimensionImage(3)" />
+                </div>
+
+
+
+
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <div id="box-image" class="text-center">
+                        {% for image in images %}
+                            <img src="{{ image }}" alt="Box Image" class="img-fluid"/>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <p class="text-muted text-center mt-2" id="cost-info">Для расчета стоимости - заполните все поля.</p>
+                    <p id="calculated-cost" class="form-control-static text-center" style="display: none"></p>
+                </div>
+
+                <div class="form-group text-center">
+                    <button type="button" class="btn btn-primary btn-block btn-lg" data-toggle="modal" data-target="#orderModal" disabled>
+                        Отправить заказ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+    </div>
+</div>
+
+<!-- Обновленная модальная форма -->
+<div class="modal fade" id="orderModal" tabindex="-1" role="dialog" aria-labelledby="orderModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header-custom">
+                <h5 class="modal-title" id="orderModalLabel">Заполните ваши данные</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="orderForm">
+                    <div class="form-group">
+                        <label for="name">Имя</label>
+                        <input type="text" id="name" name="name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Телефон</label>
+                        <input type="tel" id="phone" name="phone" class="form-control" required placeholder="+7 (___) ___-__-__" />
+                    </div>
+                    <!-- Скрытые поля для данных калькулятора -->
+                    <input type="hidden" id="product-type-hidden" name="product_type">
+                    <input type="hidden" id="paper-type-hidden" name="paper_type">
+                    <input type="hidden" id="cardboard-grade-hidden" name="cardboard_grade">
+                    <input type="hidden" id="width-hidden" name="width">
+                    <input type="hidden" id="length-hidden" name="length">
+                    <input type="hidden" id="height-hidden" name="height">
+                    <input type="hidden" id="calculated-cost-hidden" name="calculated_cost">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Закрыть</button>
+                <button type="button" class="btn btn-primary" onclick="submitOrder()">Отправить</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('.calculator-form{{ module }}');
+        const productType = form.querySelector('#product-type');
+        const paperType = form.querySelector('#paper-type');
+        const cardboardGrade = form.querySelector('#cardboard-grade');
+        const widthInput = form.querySelector('#width');
+        const lengthInput = form.querySelector('#length');
+        const heightInput = form.querySelector('#height');
+        const calculatedCostElement = form.querySelector('#calculated-cost');
+        const costInfo = form.querySelector('#cost-info');
+        const button = form.querySelector('[type="button"]');
+        const missingFieldsElement = document.createElement('p');
+        missingFieldsElement.className = 'form-control-static text-danger';
+
+
+
+        function calculateCost() {
+
+            calculatedCostElement.parentElement.appendChild(missingFieldsElement);
+
+            costInfo.style.display = 'none';
+
+            const width = parseFloat(widthInput.value); // Преобразуем в метры
+            const length = parseFloat(lengthInput.value); // Преобразуем в метры
+            const height = parseFloat(heightInput.value); // Преобразуем в метры
+
+            const productTypePrice = parseFloat(productType.selectedOptions[0].dataset.price);
+            const paperTypePrice = parseFloat(paperType.selectedOptions[0].dataset.price);
+            const cardboardGradePrice = parseFloat(cardboardGrade.selectedOptions[0].dataset.price);
+
+
+            let missingFields = [];
+            if (!widthInput.value) missingFields.push('Ширина');
+            if (!lengthInput.value) missingFields.push('Длина');
+            if (!heightInput.value) missingFields.push('Высота');
+            if (!productType.value) missingFields.push('Вид продукции');
+            if (!paperType.value) missingFields.push('Тип бумаги');
+            if (!cardboardGrade.value) missingFields.push('Марка картона');
+
+            if (missingFields.length > 0) {
+                calculatedCostElement.textContent = '';
+                missingFieldsElement.textContent = 'Для расчета стоимости заполните поля: ' + missingFields.join(', ');
+            } else {
+
+                button.disabled = false;
+
+                const volume = width * length * height;
+                const cost = volume * productTypePrice * paperTypePrice * cardboardGradePrice;
+
+                calculatedCostElement.style.display = 'block';
+                calculatedCostElement.innerHTML = 'Стоимость: <strong>' + cost.toFixed(2) + '</strong> руб. ';
+                missingFieldsElement.textContent = '';
+
+                // Заполнение скрытых полей
+                document.getElementById('product-type-hidden').value = productType.options[productType.selectedIndex].text;
+                document.getElementById('paper-type-hidden').value = paperType.options[paperType.selectedIndex].text;
+                document.getElementById('cardboard-grade-hidden').value = cardboardGrade.options[cardboardGrade.selectedIndex].text;
+                document.getElementById('width-hidden').value = width;
+                document.getElementById('length-hidden').value = length;
+                document.getElementById('height-hidden').value = height;
+                document.getElementById('calculated-cost-hidden').value = cost.toFixed(2);
+            }
+        }
+
+        form.addEventListener('input', calculateCost);
+    });
+</script>
